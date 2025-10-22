@@ -1,7 +1,9 @@
 ## MAST5112 POE 
 ## Sergio Florenca Group 2 ##
 ## ST10466821 ##
-##  Github Link :
+##  Github Link : 
+https://github.com/ST10466821/MAST-POE-CHEF-APP.git
+
 ## Chef Cristoffel Menu Management App
 A mobile application built with React Native and Expo that allows Chef Cristoffel to manage his culinary menu with ease.
 Features
