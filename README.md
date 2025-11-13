@@ -47,9 +47,11 @@ Features
 - Champagne Cocktail (Beverages) - R220.00
 - Burrata Caprese (Appetizers) - R145.00
 - Wagyu Beef Tenderloin (Specials) - R485.00
+- 
 **Implementing feedback given in part 2 of the poe.**
 - Refactoring the app and implementing course-specific screens.
-**Part 3** 
+
+**Part 3**
 - Moved course-related constants to a new file `constants.ts`.
 - Created separate screens for each course: `AppetizersScreen`, `MainsScreen`, `DessertsScreen`, `BeveragesScreen`, and `SpecialsScreen`.
 - Updated `App.tsx` to manage navigation between different course screens.
