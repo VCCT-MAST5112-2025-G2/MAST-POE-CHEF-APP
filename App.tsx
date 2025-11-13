@@ -9,108 +9,107 @@ import {
   TextInput,
   SafeAreaView,
   StatusBar,
+  Alert,
 } from 'react-native';
-
-// Types
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  course: string;
-  price: number;
-}
-
-interface Course {
-  id: string;
-  name: string;
-  icon: string;
-}
-
-const COURSES: Course[] = [
-  { id: 'appetizers', name: 'Appetizers', icon: '🥗' },
-  { id: 'mains', name: 'Mains', icon: '🍖' },
-  { id: 'desserts', name: 'Desserts', icon: '🍰' },
-  { id: 'beverages', name: 'Beverages', icon: '🍷' },
-  { id: 'specials', name: 'Specials', icon: '💎' },
-];
+import { MenuItem } from './types';
+import { COURSES } from './constants';
+import AppetizersScreen from './screens/AppetizersScreen';
+import MainsScreen from './screens/MainsScreen';
+import DessertsScreen from './screens/DessertsScreen';
+import BeveragesScreen from './screens/BeveragesScreen';
+import SpecialsScreen from './screens/SpecialsScreen';
 
 const App = () => {
-  const [screen, setScreen] = useState<'home' | 'main' | 'menu' | 'add'>('home');
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    {
-      id: '1',
-      name: 'Truffle Risotto',
-      description: 'Creamy Arborio rice with black truffle shavings, aged parmesan, and white wine reduction',
-      course: 'mains',
-      price: 285.00
-    },
-    {
-      id: '2',
-      name: 'Chocolate Soufflé',
-      description: 'Dark chocolate soufflé with vanilla bean ice cream and raspberry coulis',
-      course: 'desserts',
-      price: 95.00
-    },
-    {
-      id: '3',
-      name: 'Seared Scallops',
-      description: 'Pan-seared scallops with cauliflower puree and crispy pancetta',
-      course: 'appetizers',
-      price: 165.00
-    },
-    {
-      id: '4',
-      name: 'Champagne Cocktail',
-      description: 'Dom Pérignon with elderflower liqueur and fresh berries',
-      course: 'beverages',
-      price: 220.00
-    },
-    {
-      id: '5',
-      name: 'Burrata Caprese',
-      description: 'Fresh burrata with heirloom tomatoes, basil oil, and aged balsamic',
-      course: 'appetizers',
-      price: 145.00
-    },
-    {
-      id: '6',
-      name: 'Wagyu Beef Tenderloin',
-      description: 'Premium Wagyu with roasted veg and red wine reduction',
-      course: 'specials',
-      price: 485.00
-    }
-  ]);
-  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [screen, setScreen] = useState<'home' | 'main' | 'appetizers' | 'mains' | 'desserts' | 'beverages' | 'specials' | 'add'>('home');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   
   // Form state
   const [dishName, setDishName] = useState('');
   const [description, setDescription] = useState('');
   const [course, setCourse] = useState('');
   const [price, setPrice] = useState('');
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const handleAddDish = () => {
-    if (dishName && description && course && price) {
-      const newItem: MenuItem = {
-        id: Date.now().toString(),
-        name: dishName,
-        description: description,
-        course: course,
-        price: parseFloat(price),
-      };
-      setMenuItems([...menuItems, newItem]);
-      
-      // Reset form
-      setDishName('');
-      setDescription('');
-      setCourse('');
-      setPrice('');
-      setScreen('main');
+  const validateForm = (): boolean => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!dishName.trim()) {
+      newErrors.dishName = 'Dish name is required';
     }
+
+    if (!description.trim()) {
+      newErrors.description = 'Description is required';
+    } else if (description.trim().length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+    }
+
+    if (!course) {
+      newErrors.course = 'Please select a course';
+    }
+
+    if (!price.trim()) {
+      newErrors.price = 'Price is required';
+    } else {
+      const priceNum = parseFloat(price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        newErrors.price = 'Please enter a valid price greater than 0';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const getItemsBySelectedCourse = () => {
-    if (!selectedCourse) return [];
-    return menuItems.filter((item: MenuItem) => item.course === selectedCourse);
+  const handleAddDish = () => {
+    if (!validateForm()) {
+      Alert.alert(
+        'Validation Error',
+        'Please fill in all fields correctly before adding the dish.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const newItem: MenuItem = {
+      id: Date.now().toString(),
+      name: dishName.trim(),
+      description: description.trim(),
+      course: course,
+      price: parseFloat(price),
+    };
+    
+    setMenuItems([...menuItems, newItem]);
+    
+    // Show success feedback
+    Alert.alert(
+      'Success! 🎉',
+      `${newItem.name} has been added to the ${COURSES.find(c => c.id === course)?.name} menu.`,
+      [
+        {
+          text: 'Add Another',
+          onPress: () => {
+            // Reset form but stay on add screen
+            setDishName('');
+            setDescription('');
+            setCourse('');
+            setPrice('');
+            setErrors({});
+          },
+        },
+        {
+          text: 'View Menu',
+          onPress: () => {
+            // Reset form and go to main screen
+            setDishName('');
+            setDescription('');
+            setCourse('');
+            setPrice('');
+            setErrors({});
+            setScreen('main');
+          },
+        },
+      ]
+    );
   };
 
   const getItemsByCourse = (courseName: string) => {
@@ -120,7 +119,7 @@ const App = () => {
   const getTotalItems = () => menuItems.length;
 
   const getAveragePrice = () => {
-    if (menuItems.length === 0) return 0;
+    if (menuItems.length === 0) return '0.00';
     const total = menuItems.reduce((sum: number, item: MenuItem) => sum + item.price, 0);
     return (total / menuItems.length).toFixed(2);
   };
@@ -218,20 +217,19 @@ const App = () => {
           </View>
 
           <ScrollView style={styles.courseList}>
-            {COURSES.map((course) => {
-              const items = getItemsByCourse(course.id);
+            {COURSES.map((courseItem) => {
+              const items = getItemsByCourse(courseItem.id);
               return (
                 <TouchableOpacity
-                  key={course.id}
+                  key={courseItem.id}
                   style={styles.courseItem}
                   onPress={() => {
-                    setSelectedCourse(course.id);
-                    setScreen('menu');
+                    setScreen(courseItem.id as 'appetizers' | 'mains' | 'desserts' | 'beverages' | 'specials');
                   }}
                 >
-                  <Text style={styles.courseIcon}>{course.icon}</Text>
+                  <Text style={styles.courseIcon}>{courseItem.icon}</Text>
                   <View style={styles.courseInfo}>
-                    <Text style={styles.courseName}>{course.name}</Text>
+                    <Text style={styles.courseName}>{courseItem.name}</Text>
                     <Text style={styles.courseCount}>{items.length} items</Text>
                   </View>
                   <View style={styles.viewButton}>
@@ -253,76 +251,48 @@ const App = () => {
     );
   }
 
-  // Menu Items Screen (by course)
-  if (screen === 'menu') {
-    const courseItems = getItemsBySelectedCourse();
-    const courseName = COURSES.find((c: Course) => c.id === selectedCourse)?.name || '';
-
+  // Course-specific screens
+  if (screen === 'appetizers') {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
-        <View style={styles.mainScreen}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => setScreen('main')}>
-              <Text style={styles.backButton}>←</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>All Menu Items</Text>
-          </View>
+        <AppetizersScreen menuItems={menuItems} onBack={() => setScreen('main')} />
+      </SafeAreaView>
+    );
+  }
 
-          <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <Text style={styles.searchPlaceholder}>Search Dishes...</Text>
-          </View>
+  if (screen === 'mains') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <MainsScreen menuItems={menuItems} onBack={() => setScreen('main')} />
+      </SafeAreaView>
+    );
+  }
 
-          <View style={styles.categoryTabs}>
-            {COURSES.map((course) => (
-              <TouchableOpacity
-                key={course.id}
-                style={[
-                  styles.categoryTab,
-                  selectedCourse === course.id && styles.categoryTabActive,
-                ]}
-                onPress={() => setSelectedCourse(course.id)}
-              >
-                <Text style={[
-                  styles.categoryTabText,
-                  selectedCourse === course.id && styles.categoryTabTextActive,
-                ]}>{course.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+  if (screen === 'desserts') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <DessertsScreen menuItems={menuItems} onBack={() => setScreen('main')} />
+      </SafeAreaView>
+    );
+  }
 
-          <ScrollView style={styles.menuItemsList}>
-            <View style={styles.courseHeader}>
-              <Text style={styles.courseHeaderIcon}>
-                {COURSES.find((c: Course) => c.id === selectedCourse)?.icon}
-              </Text>
-              <Text style={styles.courseHeaderText}>{courseName}</Text>
-            </View>
+  if (screen === 'beverages') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <BeveragesScreen menuItems={menuItems} onBack={() => setScreen('main')} />
+      </SafeAreaView>
+    );
+  }
 
-            {courseItems.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>
-                  No items in {courseName} yet
-                </Text>
-              </View>
-            ) : (
-              courseItems.map((item: MenuItem) => (
-                <View key={item.id} style={styles.menuItem}>
-                  <View style={styles.menuItemHeader}>
-                    <Text style={styles.menuItemName}>{item.name}</Text>
-                    <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>R{item.price.toFixed(2)}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.menuItemDescription}>
-                    {item.description}
-                  </Text>
-                </View>
-              ))
-            )}
-          </ScrollView>
-        </View>
+  if (screen === 'specials') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <SpecialsScreen menuItems={menuItems} onBack={() => setScreen('main')} />
       </SafeAreaView>
     );
   }
@@ -358,25 +328,47 @@ const App = () => {
             Enter name of the dish you wish to add to the menu
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.dishName ? styles.inputError : null]}
             placeholder="Enter dish name"
             placeholderTextColor="#999"
             value={dishName}
-            onChangeText={setDishName}
+            onChangeText={(text) => {
+              setDishName(text);
+              if (errors.dishName) {
+                setErrors({ ...errors, dishName: '' });
+              }
+            }}
           />
+          {errors.dishName && (
+            <Text style={styles.errorText}>{errors.dishName}</Text>
+          )}
 
           <Text style={styles.label}>Description :</Text>
+          <Text style={styles.helperText}>
+            Describe your culinary creation (minimum 10 characters)
+          </Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, errors.description ? styles.inputError : null]}
             placeholder="Describe your culinary creation"
             placeholderTextColor="#999"
             multiline
             numberOfLines={4}
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(text) => {
+              setDescription(text);
+              if (errors.description) {
+                setErrors({ ...errors, description: '' });
+              }
+            }}
           />
+          {errors.description && (
+            <Text style={styles.errorText}>{errors.description}</Text>
+          )}
 
           <Text style={styles.label}>Course :</Text>
+          {errors.course && (
+            <Text style={styles.errorText}>{errors.course}</Text>
+          )}
           <View style={styles.courseSelection}>
             {COURSES.map((c) => (
               <TouchableOpacity
@@ -385,7 +377,12 @@ const App = () => {
                   styles.courseChip,
                   course === c.id && styles.courseChipActive,
                 ]}
-                onPress={() => setCourse(c.id)}
+                onPress={() => {
+                  setCourse(c.id);
+                  if (errors.course) {
+                    setErrors({ ...errors, course: '' });
+                  }
+                }}
               >
                 <Text style={styles.courseChipIcon}>{c.icon}</Text>
                 <Text style={[
@@ -397,7 +394,10 @@ const App = () => {
           </View>
 
           <Text style={styles.label}>Price :</Text>
-          <View style={styles.priceInput}>
+          <Text style={styles.helperText}>
+            Enter the price in Rands (e.g., 150.00)
+          </Text>
+          <View style={[styles.priceInput, errors.price ? styles.inputError : null]}>
             <Text style={styles.currencySymbol}>R</Text>
             <TextInput
               style={styles.priceInputField}
@@ -405,9 +405,17 @@ const App = () => {
               placeholderTextColor="#999"
               keyboardType="decimal-pad"
               value={price}
-              onChangeText={setPrice}
+              onChangeText={(text) => {
+                setPrice(text);
+                if (errors.price) {
+                  setErrors({ ...errors, price: '' });
+                }
+              }}
             />
           </View>
+          {errors.price && (
+            <Text style={styles.errorText}>{errors.price}</Text>
+          )}
 
           <TouchableOpacity
             style={styles.addToMenuButton}
@@ -540,13 +548,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
-  menuIconButton: {
-    padding: 5,
-  },
-  menuIcon: {
-    fontSize: 24,
-    color: '#1a1a1a',
-  },
   backButton: {
     fontSize: 28,
     color: '#1a1a1a',
@@ -626,111 +627,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8A87C',
-    margin: 20,
-    marginTop: 10,
-    padding: 15,
-    borderRadius: 25,
-  },
-  searchIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  searchPlaceholder: {
-    color: '#666',
-    fontSize: 14,
-  },
-  categoryTabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    flexWrap: 'wrap',
-  },
-  categoryTab: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 15,
-    backgroundColor: '#2a2a2a',
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  categoryTabActive: {
-    backgroundColor: '#E8A87C',
-  },
-  categoryTabText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  categoryTabTextActive: {
-    color: '#1a1a1a',
-  },
-  menuItemsList: {
-    flex: 1,
-    padding: 20,
-  },
-  courseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8A87C',
-    padding: 12,
-    borderRadius: 15,
-    marginBottom: 15,
-  },
-  courseHeaderIcon: {
-    fontSize: 24,
-    marginRight: 10,
-  },
-  courseHeaderText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  menuItem: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-  },
-  menuItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  menuItemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    flex: 1,
-  },
-  priceTag: {
-    backgroundColor: '#E8A87C',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  priceTagText: {
-    color: '#1a1a1a',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  menuItemDescription: {
-    fontSize: 13,
-    color: '#999',
-    lineHeight: 18,
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#666',
-  },
   formContainer: {
     flex: 1,
     padding: 20,
@@ -775,7 +671,17 @@ const styles = StyleSheet.create({
     padding: 15,
     color: '#fff',
     fontSize: 14,
-    marginBottom: 20,
+    marginBottom: 5,
+  },
+  inputError: {
+    borderWidth: 1,
+    borderColor: '#ff4444',
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginBottom: 15,
+    marginTop: -10,
   },
   textArea: {
     height: 100,
@@ -817,7 +723,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
     borderRadius: 12,
     paddingLeft: 15,
-    marginBottom: 30,
+    marginBottom: 5,
   },
   currencySymbol: {
     fontSize: 16,
