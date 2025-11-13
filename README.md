@@ -4,6 +4,10 @@
 ##  Github Link : 
 https://github.com/ST10466821/MAST-POE-CHEF-APP.git
 
+## Youtube Video link
+https://youtube.com/shorts/e_hsnCk59rE?feature=share
+https://youtube.com/shorts/e_hsnCk59rE
+
 ## Chef Cristoffel Menu Management App
 A mobile application built with React Native and Expo that allows Chef Cristoffel to manage his culinary menu with ease.
 Features
@@ -43,13 +47,22 @@ Features
 - Champagne Cocktail (Beverages) - R220.00
 - Burrata Caprese (Appetizers) - R145.00
 - Wagyu Beef Tenderloin (Specials) - R485.00
+**Implementing feedback given in part 2 of the poe.**
+- Refactoring the app and implementing course-specific screens.
+**Part 3** 
+- Moved course-related constants to a new file `constants.ts`.
+- Created separate screens for each course: `AppetizersScreen`, `MainsScreen`, `DessertsScreen`, `BeveragesScreen`, and `SpecialsScreen`.
+- Updated `App.tsx` to manage navigation between different course screens.
+- Added form validation for adding new dishes, including error handling and user feedback.
+- Enhanced UI with error messages for form fields and improved styling.
+- Removed unused code and cleaned up styles for better maintainability.
 ## References
 
 - Meta Platforms, Inc. (2025) Style · React Native Documentation. Available at: https://reactnative.dev/docs/style
-  (Accessed: 20 October 2025).
+  (Accessed: 12 November 2025).
 - xAI. (2025) Grok – AI chatbot by xAI. Available at: https://grok.x.ai
-  (Accessed: 20 October 2025).
+  (Accessed: 10 November 2025).
   - Anthropic. (2025) Claude – AI assistant by Anthropic. Available at: https://claude.ai
- (Accessed: 21 October 2025).
+ (Accessed: 11 November 2025).
 - Vercel Inc. (2025) Vercel – Develop. Preview. Ship. Available at: https://vercel.com
- (Accessed: 22 October 2025).
+ (Accessed: 12 November 2025).
