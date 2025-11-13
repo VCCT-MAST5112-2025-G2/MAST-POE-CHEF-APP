@@ -6,10 +6,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   SafeAreaView,
   StatusBar,
-  Alert,
 } from 'react-native';
 import { MenuItem } from './types';
 import { COURSES } from './constants';
@@ -18,98 +16,29 @@ import MainsScreen from './screens/MainsScreen';
 import DessertsScreen from './screens/DessertsScreen';
 import BeveragesScreen from './screens/BeveragesScreen';
 import SpecialsScreen from './screens/SpecialsScreen';
+import ManageMenuScreen from './screens/ManageMenuScreen';
+import GuestMenuScreen from './screens/GuestMenuScreen';
 
 const App = () => {
-  const [screen, setScreen] = useState<'home' | 'main' | 'appetizers' | 'mains' | 'desserts' | 'beverages' | 'specials' | 'add'>('home');
+  const [screen, setScreen] = useState<
+    | 'home'
+    | 'main'
+    | 'appetizers'
+    | 'mains'
+    | 'desserts'
+    | 'beverages'
+    | 'specials'
+    | 'manage'
+    | 'guest'
+  >('home');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  
-  // Form state
-  const [dishName, setDishName] = useState('');
-  const [description, setDescription] = useState('');
-  const [course, setCourse] = useState('');
-  const [price, setPrice] = useState('');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!dishName.trim()) {
-      newErrors.dishName = 'Dish name is required';
-    }
-
-    if (!description.trim()) {
-      newErrors.description = 'Description is required';
-    } else if (description.trim().length < 10) {
-      newErrors.description = 'Description must be at least 10 characters';
-    }
-
-    if (!course) {
-      newErrors.course = 'Please select a course';
-    }
-
-    if (!price.trim()) {
-      newErrors.price = 'Price is required';
-    } else {
-      const priceNum = parseFloat(price);
-      if (isNaN(priceNum) || priceNum <= 0) {
-        newErrors.price = 'Please enter a valid price greater than 0';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleAddItem = (item: MenuItem) => {
+    setMenuItems([...menuItems, item]);
   };
 
-  const handleAddDish = () => {
-    if (!validateForm()) {
-      Alert.alert(
-        'Validation Error',
-        'Please fill in all fields correctly before adding the dish.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    const newItem: MenuItem = {
-      id: Date.now().toString(),
-      name: dishName.trim(),
-      description: description.trim(),
-      course: course,
-      price: parseFloat(price),
-    };
-    
-    setMenuItems([...menuItems, newItem]);
-    
-    // Show success feedback
-    Alert.alert(
-      'Success! 🎉',
-      `${newItem.name} has been added to the ${COURSES.find(c => c.id === course)?.name} menu.`,
-      [
-        {
-          text: 'Add Another',
-          onPress: () => {
-            // Reset form but stay on add screen
-            setDishName('');
-            setDescription('');
-            setCourse('');
-            setPrice('');
-            setErrors({});
-          },
-        },
-        {
-          text: 'View Menu',
-          onPress: () => {
-            // Reset form and go to main screen
-            setDishName('');
-            setDescription('');
-            setCourse('');
-            setPrice('');
-            setErrors({});
-            setScreen('main');
-          },
-        },
-      ]
-    );
+  const handleRemoveItem = (id: string) => {
+    setMenuItems(menuItems.filter((item) => item.id !== id));
   };
 
   const getItemsByCourse = (courseName: string) => {
@@ -118,13 +47,20 @@ const App = () => {
 
   const getTotalItems = () => menuItems.length;
 
-  const getAveragePrice = () => {
+  const getAveragePriceByCourse = (courseId: string) => {
+    const items = getItemsByCourse(courseId);
+    if (items.length === 0) return '0.00';
+    const total = items.reduce((sum: number, item: MenuItem) => sum + item.price, 0);
+    return (total / items.length).toFixed(2);
+  };
+
+  const getOverallAveragePrice = () => {
     if (menuItems.length === 0) return '0.00';
     const total = menuItems.reduce((sum: number, item: MenuItem) => sum + item.price, 0);
     return (total / menuItems.length).toFixed(2);
   };
 
-  // Home Screen
+  // Home Screen - Shows complete menu with average prices by course
   if (screen === 'home') {
     return (
       <SafeAreaView style={styles.container}>
@@ -136,61 +72,89 @@ const App = () => {
             <Text style={styles.homeSubtitle}>Private Culinary Experiences</Text>
           </View>
 
-          <View style={styles.featureCard}>
-            <Text style={styles.featureIcon}>🔧</Text>
-            <Text style={styles.featureTitle}>Craft Every Detail</Text>
-            <Text style={styles.featureText}>
-              Appetizers to desserts, bring your vision to life - the story of your culinary vision
-            </Text>
-            <View style={styles.menuStatsHome}>
-              <Text style={styles.menuStatsLabel}>Menu Items:</Text>
-              <Text style={styles.menuStatsValue}>{getTotalItems()}</Text>
+          <View style={styles.statsCard}>
+            <View style={styles.statsRow}>
+              <Text style={styles.statsLabel}>Total Items:</Text>
+              <Text style={styles.statsValue}>{getTotalItems()}</Text>
+            </View>
+            <View style={styles.statsRow}>
+              <Text style={styles.statsLabel}>Overall Avg Price:</Text>
+              <Text style={styles.statsValue}>R{getOverallAveragePrice()}</Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.featureButton}>
-            <Text style={styles.featureButtonIcon}>+</Text>
-            <View>
-              <Text style={styles.featureButtonTitle}>Add Dishes</Text>
-              <Text style={styles.featureButtonText}>
-                Create detailed menu items with descriptions and pricing
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.averagePricesSection}>
+            <Text style={styles.sectionTitle}>Average Prices by Course</Text>
+            {COURSES.map((course) => {
+              const avgPrice = getAveragePriceByCourse(course.id);
+              const itemCount = getItemsByCourse(course.id).length;
+              return (
+                <View key={course.id} style={styles.coursePriceCard}>
+                  <View style={styles.coursePriceHeader}>
+                    <Text style={styles.coursePriceIcon}>{course.icon}</Text>
+                    <Text style={styles.coursePriceName}>{course.name}</Text>
+                  </View>
+                  <View style={styles.coursePriceInfo}>
+                    <Text style={styles.coursePriceLabel}>Avg Price:</Text>
+                    <Text style={styles.coursePriceValue}>R{avgPrice}</Text>
+                    <Text style={styles.coursePriceCount}>({itemCount} items)</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
 
-          <TouchableOpacity style={styles.featureButton}>
-            <Text style={styles.featureButtonIcon}>📂</Text>
-            <View style={styles.featureButtonTextContainer}>
-              <Text style={styles.featureButtonTitle}>Organize By Course</Text>
-              <Text style={styles.featureButtonText}>
-                Sort dishes into appetizers, mains, desserts{'\n'}and more
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.completeMenuSection}>
+            <Text style={styles.sectionTitle}>Complete Menu</Text>
+            {menuItems.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>
+                  No menu items yet. Manage your menu to add items.
+                </Text>
+              </View>
+            ) : (
+              COURSES.map((course) => {
+                const items = getItemsByCourse(course.id);
+                if (items.length === 0) return null;
 
-          <TouchableOpacity style={styles.featureButton}>
-            <Text style={styles.featureButtonIcon}>✏️</Text>
-            <View style={styles.featureButtonTextContainer}>
-              <Text style={styles.featureButtonTitle}>Easy Management</Text>
-              <Text style={styles.featureButtonText}>
-                Update and modify your menu items effortlessly
-              </Text>
-            </View>
-          </TouchableOpacity>
+                return (
+                  <View key={course.id} style={styles.menuCourseSection}>
+                    <View style={styles.menuCourseHeader}>
+                      <Text style={styles.menuCourseIcon}>{course.icon}</Text>
+                      <Text style={styles.menuCourseTitle}>{course.name}</Text>
+                    </View>
+                    {items.map((item: MenuItem) => (
+                      <View key={item.id} style={styles.menuItemCard}>
+                        <View style={styles.menuItemHeader}>
+                          <Text style={styles.menuItemName}>{item.name}</Text>
+                          <View style={styles.priceTag}>
+                            <Text style={styles.priceTagText}>R{item.price.toFixed(2)}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.menuItemDescription}>{item.description}</Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })
+            )}
+          </View>
 
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={() => setScreen('main')}
-          >
-            <Text style={styles.startButtonText}>View Menu</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setScreen('manage')}
+            >
+              <Text style={styles.actionButtonText}>Manage Menu</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.startButton, styles.createDishButton]}
-            onPress={() => setScreen('add')}
-          >
-            <Text style={styles.startButtonText}>Create New Dish</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.guestButton]}
+              onPress={() => setScreen('guest')}
+            >
+              <Text style={styles.actionButtonText}>Guest View</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     );
@@ -203,17 +167,17 @@ const App = () => {
         <StatusBar barStyle="light-content" />
         <View style={styles.mainScreen}>
           <View style={styles.header}>
-            <Text style={styles.headerIcon}>👨‍🍳</Text>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Chef Cristoffel</Text>
-            </View>
+            <TouchableOpacity onPress={() => setScreen('home')}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Chef Cristoffel</Text>
           </View>
 
           <View style={styles.statsCard}>
             <Text style={styles.statsLabel}>Total Items :</Text>
             <Text style={styles.statsValue}>{getTotalItems()}</Text>
             <Text style={styles.statsLabel}>Avg Price :</Text>
-            <Text style={styles.statsValue}>R{getAveragePrice()}</Text>
+            <Text style={styles.statsValue}>R{getOverallAveragePrice()}</Text>
           </View>
 
           <ScrollView style={styles.courseList}>
@@ -242,11 +206,36 @@ const App = () => {
 
           <TouchableOpacity
             style={styles.addDishButton}
-            onPress={() => setScreen('add')}
+            onPress={() => setScreen('manage')}
           >
-            <Text style={styles.addDishButtonText}>Add Dish</Text>
+            <Text style={styles.addDishButtonText}>Manage Menu</Text>
           </TouchableOpacity>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Manage Menu Screen
+  if (screen === 'manage') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <ManageMenuScreen
+          menuItems={menuItems}
+          onAddItem={handleAddItem}
+          onRemoveItem={handleRemoveItem}
+          onBack={() => setScreen('home')}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // Guest Menu Screen
+  if (screen === 'guest') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <GuestMenuScreen menuItems={menuItems} onBack={() => setScreen('home')} />
       </SafeAreaView>
     );
   }
@@ -297,136 +286,7 @@ const App = () => {
     );
   }
 
-  // Add New Dish Screen
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.mainScreen}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setScreen('main')}>
-            <Text style={styles.backButton}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add New Dish</Text>
-          <TouchableOpacity onPress={handleAddDish}>
-            <Text style={styles.saveButton}>Save</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.formContainer}>
-          <TouchableOpacity style={styles.createNewButton}>
-            <Text style={styles.createNewIcon}>+</Text>
-            <View>
-              <Text style={styles.createNewTitle}>Create New Dish</Text>
-              <Text style={styles.createNewText}>
-                Add a new creation to the menu
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <Text style={styles.label}>Dish Name :</Text>
-          <Text style={styles.helperText}>
-            Enter name of the dish you wish to add to the menu
-          </Text>
-          <TextInput
-            style={[styles.input, errors.dishName ? styles.inputError : null]}
-            placeholder="Enter dish name"
-            placeholderTextColor="#999"
-            value={dishName}
-            onChangeText={(text) => {
-              setDishName(text);
-              if (errors.dishName) {
-                setErrors({ ...errors, dishName: '' });
-              }
-            }}
-          />
-          {errors.dishName && (
-            <Text style={styles.errorText}>{errors.dishName}</Text>
-          )}
-
-          <Text style={styles.label}>Description :</Text>
-          <Text style={styles.helperText}>
-            Describe your culinary creation (minimum 10 characters)
-          </Text>
-          <TextInput
-            style={[styles.input, styles.textArea, errors.description ? styles.inputError : null]}
-            placeholder="Describe your culinary creation"
-            placeholderTextColor="#999"
-            multiline
-            numberOfLines={4}
-            value={description}
-            onChangeText={(text) => {
-              setDescription(text);
-              if (errors.description) {
-                setErrors({ ...errors, description: '' });
-              }
-            }}
-          />
-          {errors.description && (
-            <Text style={styles.errorText}>{errors.description}</Text>
-          )}
-
-          <Text style={styles.label}>Course :</Text>
-          {errors.course && (
-            <Text style={styles.errorText}>{errors.course}</Text>
-          )}
-          <View style={styles.courseSelection}>
-            {COURSES.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                style={[
-                  styles.courseChip,
-                  course === c.id && styles.courseChipActive,
-                ]}
-                onPress={() => {
-                  setCourse(c.id);
-                  if (errors.course) {
-                    setErrors({ ...errors, course: '' });
-                  }
-                }}
-              >
-                <Text style={styles.courseChipIcon}>{c.icon}</Text>
-                <Text style={[
-                  styles.courseChipText,
-                  course === c.id && styles.courseChipTextActive,
-                ]}>{c.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.label}>Price :</Text>
-          <Text style={styles.helperText}>
-            Enter the price in Rands (e.g., 150.00)
-          </Text>
-          <View style={[styles.priceInput, errors.price ? styles.inputError : null]}>
-            <Text style={styles.currencySymbol}>R</Text>
-            <TextInput
-              style={styles.priceInputField}
-              placeholder="0.00"
-              placeholderTextColor="#999"
-              keyboardType="decimal-pad"
-              value={price}
-              onChangeText={(text) => {
-                setPrice(text);
-                if (errors.price) {
-                  setErrors({ ...errors, price: '' });
-                }
-              }}
-            />
-          </View>
-          {errors.price && (
-            <Text style={styles.errorText}>{errors.price}</Text>
-          )}
-
-          <TouchableOpacity
-            style={styles.addToMenuButton}
-            onPress={handleAddDish}
-          >
-            <Text style={styles.addToMenuButtonText}>Add to Menu</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </SafeAreaView>
-  );
+  return null;
 };
 
 const styles = StyleSheet.create({
@@ -457,69 +317,158 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
-  featureCard: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 20,
-    padding: 25,
+  statsCard: {
+    backgroundColor: '#E8A87C',
+    borderRadius: 15,
+    padding: 20,
     marginBottom: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
   },
-  featureIcon: {
-    fontSize: 40,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  featureTitle: {
-    fontSize: 20,
+  statsLabel: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  statsValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  averagePricesSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
+    marginBottom: 15,
+  },
+  coursePriceCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 15,
+    padding: 15,
     marginBottom: 10,
   },
-  featureText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  featureButton: {
+  coursePriceHeader: {
     flexDirection: 'row',
-    backgroundColor: '#2a2a2a',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 15,
     alignItems: 'center',
+    marginBottom: 10,
   },
-  featureButtonIcon: {
-    fontSize: 30,
-    marginRight: 15,
+  coursePriceIcon: {
+    fontSize: 24,
+    marginRight: 10,
   },
-  featureButtonTextContainer: {
-    flex: 1,
-  },
-  featureButtonTitle: {
+  coursePriceName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 5,
   },
-  featureButtonText: {
+  coursePriceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 34,
+  },
+  coursePriceLabel: {
     fontSize: 12,
     color: '#999',
-    lineHeight: 16,
+    marginRight: 8,
   },
-  startButton: {
+  coursePriceValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E8A87C',
+    marginRight: 8,
+  },
+  coursePriceCount: {
+    fontSize: 12,
+    color: '#999',
+  },
+  completeMenuSection: {
+    marginBottom: 20,
+  },
+  menuCourseSection: {
+    marginBottom: 20,
+  },
+  menuCourseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8A87C',
+    padding: 12,
+    borderRadius: 15,
+    marginBottom: 10,
+  },
+  menuCourseIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  menuCourseTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  menuItemCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 10,
+  },
+  menuItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  menuItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    flex: 1,
+  },
+  priceTag: {
+    backgroundColor: '#E8A87C',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  priceTagText: {
+    color: '#1a1a1a',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  menuItemDescription: {
+    fontSize: 13,
+    color: '#999',
+    lineHeight: 18,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  actionButtons: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  actionButton: {
     backgroundColor: '#E8A87C',
     borderRadius: 25,
     padding: 18,
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: 10,
   },
-  createDishButton: {
-    backgroundColor: '#E8A87C',
-    borderWidth: 0,
+  guestButton: {
+    backgroundColor: '#4a90e2',
   },
-  startButtonText: {
+  actionButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
@@ -536,45 +485,16 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
   },
-  headerIcon: {
-    fontSize: 30,
-    marginRight: 10,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1a1a1a',
+    flex: 1,
   },
   backButton: {
     fontSize: 28,
     color: '#1a1a1a',
     marginRight: 10,
-  },
-  saveButton: {
-    fontSize: 16,
-    color: '#1a1a1a',
-    fontWeight: 'bold',
-  },
-  statsCard: {
-    backgroundColor: '#E8A87C',
-    margin: 20,
-    padding: 15,
-    borderRadius: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  statsLabel: {
-    fontSize: 12,
-    color: '#1a1a1a',
-  },
-  statsValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   courseList: {
     flex: 1,
@@ -626,148 +546,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
-  },
-  formContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  createNewButton: {
-    flexDirection: 'row',
-    backgroundColor: '#E8A87C',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 25,
-    alignItems: 'center',
-  },
-  createNewIcon: {
-    fontSize: 30,
-    marginRight: 15,
-    color: '#1a1a1a',
-  },
-  createNewTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 3,
-  },
-  createNewText: {
-    fontSize: 12,
-    color: '#333',
-  },
-  label: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 5,
-    fontWeight: 'bold',
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10,
-  },
-  input: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    padding: 15,
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  inputError: {
-    borderWidth: 1,
-    borderColor: '#ff4444',
-  },
-  errorText: {
-    color: '#ff4444',
-    fontSize: 12,
-    marginBottom: 15,
-    marginTop: -10,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  courseSelection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  courseChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2a2a2a',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  courseChipActive: {
-    backgroundColor: '#E8A87C',
-  },
-  courseChipIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  courseChipText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  courseChipTextActive: {
-    color: '#1a1a1a',
-  },
-  priceInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    paddingLeft: 15,
-    marginBottom: 5,
-  },
-  currencySymbol: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-    marginRight: 5,
-  },
-  priceInputField: {
-    flex: 1,
-    padding: 15,
-    color: '#fff',
-    fontSize: 14,
-  },
-  addToMenuButton: {
-    backgroundColor: '#E8A87C',
-    padding: 18,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  addToMenuButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  menuStatsHome: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#444',
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuStatsLabel: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 10,
-  },
-  menuStatsValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#E8A87C',
   },
 });
 
