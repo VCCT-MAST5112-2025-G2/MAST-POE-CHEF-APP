@@ -20,7 +20,13 @@ interface MenuItem {
   price: number;
 }
 
-const COURSES = [
+interface Course {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+const COURSES: Course[] = [
   { id: 'appetizers', name: 'Appetizers', icon: '🥗' },
   { id: 'mains', name: 'Mains', icon: '🍖' },
   { id: 'desserts', name: 'Desserts', icon: '🍰' },
@@ -104,18 +110,18 @@ const App = () => {
 
   const getItemsBySelectedCourse = () => {
     if (!selectedCourse) return [];
-    return menuItems.filter(item => item.course === selectedCourse);
+    return menuItems.filter((item: MenuItem) => item.course === selectedCourse);
   };
 
   const getItemsByCourse = (courseName: string) => {
-    return menuItems.filter(item => item.course === courseName);
+    return menuItems.filter((item: MenuItem) => item.course === courseName);
   };
 
   const getTotalItems = () => menuItems.length;
 
   const getAveragePrice = () => {
     if (menuItems.length === 0) return 0;
-    const total = menuItems.reduce((sum, item) => sum + item.price, 0);
+    const total = menuItems.reduce((sum: number, item: MenuItem) => sum + item.price, 0);
     return (total / menuItems.length).toFixed(2);
   };
 
@@ -250,7 +256,7 @@ const App = () => {
   // Menu Items Screen (by course)
   if (screen === 'menu') {
     const courseItems = getItemsBySelectedCourse();
-    const courseName = COURSES.find(c => c.id === selectedCourse)?.name || '';
+    const courseName = COURSES.find((c: Course) => c.id === selectedCourse)?.name || '';
 
     return (
       <SafeAreaView style={styles.container}>
@@ -278,7 +284,10 @@ const App = () => {
                 ]}
                 onPress={() => setSelectedCourse(course.id)}
               >
-                <Text style={styles.categoryTabText}>{course.name}</Text>
+                <Text style={[
+                  styles.categoryTabText,
+                  selectedCourse === course.id && styles.categoryTabTextActive,
+                ]}>{course.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -286,7 +295,7 @@ const App = () => {
           <ScrollView style={styles.menuItemsList}>
             <View style={styles.courseHeader}>
               <Text style={styles.courseHeaderIcon}>
-                {COURSES.find(c => c.id === selectedCourse)?.icon}
+                {COURSES.find((c: Course) => c.id === selectedCourse)?.icon}
               </Text>
               <Text style={styles.courseHeaderText}>{courseName}</Text>
             </View>
@@ -298,12 +307,12 @@ const App = () => {
                 </Text>
               </View>
             ) : (
-              courseItems.map((item) => (
+              courseItems.map((item: MenuItem) => (
                 <View key={item.id} style={styles.menuItem}>
                   <View style={styles.menuItemHeader}>
                     <Text style={styles.menuItemName}>{item.name}</Text>
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>R{item.price}</Text>
+                      <Text style={styles.priceTagText}>R{item.price.toFixed(2)}</Text>
                     </View>
                   </View>
                   <Text style={styles.menuItemDescription}>
@@ -379,7 +388,10 @@ const App = () => {
                 onPress={() => setCourse(c.id)}
               >
                 <Text style={styles.courseChipIcon}>{c.icon}</Text>
-                <Text style={styles.courseChipText}>{c.name}</Text>
+                <Text style={[
+                  styles.courseChipText,
+                  course === c.id && styles.courseChipTextActive,
+                ]}>{c.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -653,6 +665,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
+  categoryTabTextActive: {
+    color: '#1a1a1a',
+  },
   menuItemsList: {
     flex: 1,
     padding: 20,
@@ -792,6 +807,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: 'bold',
+  },
+  courseChipTextActive: {
+    color: '#1a1a1a',
   },
   priceInput: {
     flexDirection: 'row',
